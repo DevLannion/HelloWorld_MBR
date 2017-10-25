@@ -1,31 +1,39 @@
+# the CPU (even an x86_64) starts in 16-bit mode, we need to produce 16-bit
+# (8086) asm
 .code16
+
 .text
-	.globl _start;
+	.globl _start
 _start:
+	# load the string address in %si and call our "puts" routine
 	leaw s1, %si
 	call puts
 
 idle:
+	# then run an infinite loop to wait
 	jmp idle
 
+# define a routine that will print a string whose address is places in %si
 puts:
-	lodsb
+	lodsb # %al = *(%si++)
 	test %al, %al
 	jz puts_end
+
+	# print the character in %al to the screen:
+	# - routine no. 0x0e ("Write Character in TTY Mode"), in %ah
+	# - interrupt vector no. 0x10
 	movb $0x0e, %ah
 	int  $0x10
+
 	jmp puts
 puts_end:
-	movb $13, %al
-	movb $0x0e, %ah
-	int  $0x10
-	movb $10, %al
-	movb $0x0e, %ah
-	int  $0x10
 	ret
 
+# reserve some space to hold the text to display
 s1:
-	.string "Hello World!"
+	.string "Hello World!\r\n"
+
+# at offset 510, write the "magic number" 0x55aa
 	. = _start + 510
 	.byte 0x55
 	.byte 0xaa
